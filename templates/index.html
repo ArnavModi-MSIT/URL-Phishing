@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Phishing URL Detector</title>
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Phishing URL Detection</h1>
+        <form id="urlForm">
+            <input type="url" id="urlInput" placeholder="Enter URL to check" required>
+            <button type="submit">Check URL</button>
+        </form>
+        <div id="result" class="hidden">
+            <h2>Detection Result</h2>
+            <p id="resultText"></p>
+        </div>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>

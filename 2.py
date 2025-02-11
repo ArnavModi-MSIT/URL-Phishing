@@ -1,0 +1,101 @@
+import os
+import joblib
+import numpy as np
+import pandas as pd
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, HttpUrl
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.ensemble import HistGradientBoostingClassifier
+
+class URLInput(BaseModel):
+    url: HttpUrl
+
+class PhishingDetectorAPI:
+    def __init__(self, model_path='models/phishing_detector_v1.joblib'):
+        # Load pre-trained model and preprocessing components
+        data = joblib.load(model_path)
+        self.model = data['model']
+        self.scaler = data['scaler']
+        self.encoder = data['encoder']
+
+        self.numeric_features = ['url_length', 'dots_count', 'digits_count', 'special_chars_count', 
+                                 'path_depth', 'avg_token_length']
+        self.categorical_features = ['has_http', 'has_www']
+
+    def extract_url_features(self, url):
+        url = str(url).lower()
+        import re
+
+        dots_count = url.count('.')
+        path_depth = url.count('/')
+        url_length = len(url)
+        digits_count = sum(map(str.isdigit, url))
+        special_chars_count = len(re.findall(r'[^a-z0-9.-_/]', url))
+        
+        tokens = re.split(r'[/.-_]', url)
+        tokens = [token for token in tokens if token]
+        avg_token_length = np.mean([len(token) for token in tokens]) if tokens else 0
+        
+        has_http = url.startswith('http://')
+        has_www = 'www.' in url
+        
+        return {
+            'url_length': url_length,
+            'dots_count': dots_count,
+            'digits_count': digits_count,
+            'special_chars_count': special_chars_count,
+            'path_depth': path_depth,
+            'avg_token_length': avg_token_length,
+            'has_http': int(has_http),
+            'has_www': int(has_www)
+        }
+
+    def prepare_features(self, url_features):
+        # Convert features to DataFrame
+        df = pd.DataFrame([url_features])
+        
+        X_categorical = self.encoder.transform(df[self.categorical_features])
+        X_numeric = self.scaler.transform(df[self.numeric_features])
+
+        X_categorical_df = pd.DataFrame(X_categorical, columns=self.encoder.get_feature_names_out())
+        X_numeric_df = pd.DataFrame(X_numeric, columns=self.numeric_features)
+
+        return pd.concat([X_numeric_df, X_categorical_df], axis=1)
+
+    def predict_phishing(self, url):
+        url_features = self.extract_url_features(url)
+        prepared_features = self.prepare_features(url_features)
+        prediction = self.model.predict(prepared_features)[0]
+        return bool(prediction)  # True means phishing (bad), False means safe (good)
+
+# FastAPI Setup
+app = FastAPI(title="Phishing URL Detector")
+detector = PhishingDetectorAPI()
+
+# Set up static files and templates
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.post("/predict")
+async def predict_url(input_url: URLInput):
+    try:
+        is_phishing = detector.predict_phishing(input_url.url)
+        return {
+            "url": str(input_url.url),
+            "is_phishing": is_phishing,
+            "risk_level": "High" if is_phishing else "Low"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
