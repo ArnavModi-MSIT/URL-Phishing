@@ -3,3 +3,4 @@
 /phishing_site_urls.csv
 /.venv
 /models
+/__pycache__

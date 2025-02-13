@@ -2,6 +2,7 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
+import asyncpg
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -10,8 +11,16 @@ from pydantic import BaseModel, HttpUrl
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.ensemble import HistGradientBoostingClassifier
 
+# Database connection settings
+DATABASE_URL = "postgresql://postgres:arnavmodi@localhost/url"
+
 class URLInput(BaseModel):
     url: HttpUrl
+
+class FeedbackInput(BaseModel):
+    url: str
+    is_phishing: bool
+    feedback: bool  # True = confirm, False = opposite label
 
 class PhishingDetectorAPI:
     def __init__(self, model_path='models/phishing_detector_v1.joblib'):
@@ -69,7 +78,7 @@ class PhishingDetectorAPI:
         url_features = self.extract_url_features(url)
         prepared_features = self.prepare_features(url_features)
         prediction = self.model.predict(prepared_features)[0]
-        return bool(prediction)  # True means phishing (bad), False means safe (good)
+        return bool(prediction)  # True = Phishing, False = Safe
 
 # FastAPI Setup
 app = FastAPI(title="Phishing URL Detector")
@@ -79,6 +88,21 @@ detector = PhishingDetectorAPI()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+@app.on_event("startup")
+async def startup():
+    app.state.db = await asyncpg.connect(DATABASE_URL)
+    await app.state.db.execute("""
+        CREATE TABLE IF NOT EXISTS feedback (
+            id SERIAL PRIMARY KEY,
+            url TEXT UNIQUE,
+            label BOOLEAN
+        )
+    """)
+
+@app.on_event("shutdown")
+async def shutdown():
+    await app.state.db.close()
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -95,6 +119,22 @@ async def predict_url(input_url: URLInput):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/feedback")
+async def store_feedback(feedback_data: FeedbackRequest):
+    feedback_label = "good" if feedback_data.feedback else "bad"
+
+    try:
+        cur.execute(
+            "INSERT INTO feedback (url, label) VALUES (%s, %s) ON CONFLICT (url) DO UPDATE SET label = EXCLUDED.label",
+            (feedback_data.url, feedback_label)
+        )
+        conn.commit()
+        return {"message": "Feedback stored"}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn
