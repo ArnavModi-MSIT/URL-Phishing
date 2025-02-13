@@ -4,3 +4,7 @@
 /.venv
 /models
 /__pycache__
+/.firebase
+/.github
+/.firebaserc
+/firebase.json

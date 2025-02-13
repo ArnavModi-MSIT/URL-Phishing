@@ -84,9 +84,8 @@ class PhishingDetectorAPI:
 app = FastAPI(title="Phishing URL Detector")
 detector = PhishingDetectorAPI()
 
-# Set up static files and templates
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+app.mount("/public", StaticFiles(directory=os.path.join(BASE_DIR, "public")), name="public")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 @app.on_event("startup")
@@ -120,20 +119,23 @@ async def predict_url(input_url: URLInput):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+# ...existing code...
+
 @app.post("/feedback")
-async def store_feedback(feedback_data: FeedbackRequest):
+async def store_feedback(feedback_data: FeedbackInput):
     feedback_label = "good" if feedback_data.feedback else "bad"
 
     try:
-        cur.execute(
-            "INSERT INTO feedback (url, label) VALUES (%s, %s) ON CONFLICT (url) DO UPDATE SET label = EXCLUDED.label",
-            (feedback_data.url, feedback_label)
+        await app.state.db.execute(
+            "INSERT INTO feedback (url, label) VALUES ($1, $2) ON CONFLICT (url) DO UPDATE SET label = EXCLUDED.label",
+            feedback_data.url, feedback_label
         )
-        conn.commit()
         return {"message": "Feedback stored"}
     except Exception as e:
-        conn.rollback()
+        await app.state.db.execute("ROLLBACK")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ...existing code...
 
 
 if __name__ == "__main__":
