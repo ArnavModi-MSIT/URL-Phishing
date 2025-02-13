@@ -86,7 +86,7 @@ detector = PhishingDetectorAPI()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app.mount("/public", StaticFiles(directory=os.path.join(BASE_DIR, "public")), name="public")
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "public"))
 
 @app.on_event("startup")
 async def startup():
