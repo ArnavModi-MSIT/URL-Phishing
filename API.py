@@ -11,6 +11,12 @@ from pydantic import BaseModel, HttpUrl
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.ensemble import HistGradientBoostingClassifier
 
+app = FastAPI()
+
+@app.get("/")
+def home():
+    return {"message": "API is running"}
+
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://phishing_feedback_db_user:YU0q5xSMwbvrMvgnMvZpjHnb4LRUGxAO@dpg-cundop23esus73cg5up0-a/phishing_feedback_db")
 
