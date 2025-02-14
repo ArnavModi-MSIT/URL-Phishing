@@ -1,3 +1,5 @@
+const API_URL = "postgresql://phishing_feedback_db_user:YU0q5xSMwbvrMvgnMvZpjHnb4LRUGxAO@dpg-cundop23esus73cg5up0-a/phishing_feedback_db"; // Replace with your actual Render URL
+
 document.getElementById('urlForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const urlInput = document.getElementById('urlInput');
@@ -8,11 +10,9 @@ document.getElementById('urlForm').addEventListener('submit', async (e) => {
     const feedbackNo = document.getElementById('feedbackNo');
 
     try {
-        const response = await fetch('/predict', {
+        const response = await fetch(`${API_URL}/predict`, {  // 🔹 Use full URL
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: urlInput.value })
         });
 
@@ -27,30 +27,26 @@ document.getElementById('urlForm').addEventListener('submit', async (e) => {
         feedbackDiv.classList.remove('hidden');
         
         feedbackYes.onclick = async () => {
-            await fetch('/feedback', {
+            await fetch(`postgresql://phishing_feedback_db_user:YU0q5xSMwbvrMvgnMvZpjHnb4LRUGxAO@dpg-cundop23esus73cg5up0-a/phishing_feedback_db/feedback`, {  // 🔹 Use full URL
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     url: urlInput.value,
                     is_phishing: data.is_phishing, 
-                    feedback: true // ✅ Confirm the prediction
+                    feedback: true
                 })
             });
             feedbackDiv.classList.add('hidden');
         };
         
         feedbackNo.onclick = async () => {
-            await fetch('/feedback', {
+            await fetch(`postgresql://phishing_feedback_db_user:YU0q5xSMwbvrMvgnMvZpjHnb4LRUGxAO@dpg-cundop23esus73cg5up0-a/phishing_feedback_db/feedback`, {  // 🔹 Use full URL
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     url: urlInput.value,
                     is_phishing: data.is_phishing, 
-                    feedback: false // ✅ Opposite of the prediction
+                    feedback: false
                 })
             });
             feedbackDiv.classList.add('hidden');
