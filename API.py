@@ -90,7 +90,7 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "public"))
 
 @app.on_event("startup")
 async def startup():
-    app.state.db = await asyncpg.connect(DATABASE_URL)
+    app.state.db = await asyncpg.create_pool(DATABASE_URL)
     await app.state.db.execute("""
         CREATE TABLE IF NOT EXISTS feedback (
             id SERIAL PRIMARY KEY,
@@ -123,16 +123,13 @@ async def predict_url(input_url: URLInput):
 
 @app.post("/feedback")
 async def store_feedback(feedback_data: FeedbackInput):
-    feedback_label = "good" if feedback_data.feedback else "bad"
-
     try:
         await app.state.db.execute(
             "INSERT INTO feedback (url, label) VALUES ($1, $2) ON CONFLICT (url) DO UPDATE SET label = EXCLUDED.label",
-            feedback_data.url, feedback_label
+            feedback_data.url, feedback_data.is_phishing
         )
         return {"message": "Feedback stored"}
     except Exception as e:
-        await app.state.db.execute("ROLLBACK")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ...existing code...

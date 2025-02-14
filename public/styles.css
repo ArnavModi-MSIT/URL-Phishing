@@ -6,6 +6,7 @@ body {
     height: 100vh;
     margin: 0;
     background-color: #f4f4f4;
+    color: #333;
 }
 
 .container {
@@ -36,10 +37,31 @@ button {
     cursor: pointer;
 }
 
+button:hover {
+    background-color: #0056b3;
+}
+
 .hidden {
     display: none;
 }
 
 #result {
     margin-top: 20px;
+}
+
+/* Feedback buttons */
+#feedbackYes {
+    background-color: #28a745;
+}
+
+#feedbackYes:hover {
+    background-color: #218838;
+}
+
+#feedbackNo {
+    background-color: #dc3545;
+}
+
+#feedbackNo:hover {
+    background-color: #c82333;
 }
