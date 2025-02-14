@@ -8,7 +8,7 @@ document.getElementById('urlForm').addEventListener('submit', async (e) => {
     const feedbackNo = document.getElementById('feedbackNo');
 
     try {
-        const response = await fetch(`${API_URL}/predict`, { 
+        const response = await fetch("https://url-phishing-3ez3.onrender.com/predict", { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: urlInput.value })
@@ -25,7 +25,7 @@ document.getElementById('urlForm').addEventListener('submit', async (e) => {
         feedbackDiv.classList.remove('hidden');
 
         feedbackYes.onclick = async () => {
-            await fetch(`${API_URL}/feedback`, {  // 🔹 Correct API URL
+            await fetch("https://url-phishing-3ez3.onrender.com/feedback", {  
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -38,7 +38,7 @@ document.getElementById('urlForm').addEventListener('submit', async (e) => {
         };
 
         feedbackNo.onclick = async () => {
-            await fetch(`${API_URL}/feedback`, {  // 🔹 Correct API URL
+            await fetch("https://url-phishing-3ez3.onrender.com/feedback", {  
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
