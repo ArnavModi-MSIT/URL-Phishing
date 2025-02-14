@@ -2,7 +2,6 @@
 /new_data_urls.csv
 /phishing_site_urls.csv
 /.venv
-/models
 /__pycache__
 /.firebase
 /.github
