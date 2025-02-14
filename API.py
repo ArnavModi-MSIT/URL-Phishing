@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, HttpUrl
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.ensemble import HistGradientBoostingClassifier
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
@@ -19,6 +20,14 @@ def home():
 
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://phishing_feedback_db_user:YU0q5xSMwbvrMvgnMvZpjHnb4LRUGxAO@dpg-cundop23esus73cg5up0-a/phishing_feedback_db")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change "*" to specific domains for security
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 class URLInput(BaseModel):
     url: HttpUrl
@@ -87,7 +96,6 @@ class PhishingDetectorAPI:
         return bool(prediction)  # True = Phishing, False = Safe
 
 # FastAPI Setup
-app = FastAPI(title="Phishing URL Detector")
 detector = PhishingDetectorAPI()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -130,6 +138,7 @@ async def predict_url(input_url: URLInput):
 @app.post("/feedback")
 async def store_feedback(feedback_data: FeedbackInput):
     try:
+        # ✅ Use 'await' correctly
         await app.state.db.execute(
             "INSERT INTO feedback (url, label) VALUES ($1, $2) ON CONFLICT (url) DO UPDATE SET label = EXCLUDED.label",
             feedback_data.url, feedback_data.is_phishing
@@ -137,8 +146,6 @@ async def store_feedback(feedback_data: FeedbackInput):
         return {"message": "Feedback stored"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-# ...existing code...
 
 
 if __name__ == "__main__":
